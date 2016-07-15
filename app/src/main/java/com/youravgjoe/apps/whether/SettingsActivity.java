@@ -200,7 +200,7 @@ public class SettingsActivity extends AppCompatActivity {
         protected void onPostExecute(final String[] locationInfo) {
             if(locationInfo != null) {
                 if(TextUtils.equals(locationInfo[0], null) && TextUtils.equals(locationInfo[1], null)) {
-                    Log.d("SettingsActivity", "Could not get location");
+                    Log.e("SettingsActivity", "Could not get location");
                     Toast.makeText(SettingsActivity.this, "Error: Invalid Location", Toast.LENGTH_LONG).show();
                     mLocation = null;
                 } else {

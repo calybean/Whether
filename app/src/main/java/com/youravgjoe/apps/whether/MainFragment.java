@@ -85,7 +85,6 @@ public class MainFragment extends Fragment {
         }
         String[] cityAndCountry = mLocation.split(",");
         if(cityAndCountry.length > 0)
-          Log.d("cityAndCountry", cityAndCountry[0] + " " + cityAndCountry[1]);
 
         mLocationTextView.setText(String.format(getString(R.string.location_intro), mLocation));
 
@@ -203,14 +202,16 @@ public class MainFragment extends Fragment {
 
         @Override
         protected void onPostExecute(final List<String> forecastArray) {
-            if(getActivity() != null && forecastArray != null) {
-                mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast, forecastArray);
-                mForecastList.setAdapter(mForecastAdapter);
-            } else {
-                List<String> errorList = new ArrayList<>();
-                errorList.add(ERROR_BAD_LOCATION);
-                mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast, errorList);
-                mForecastList.setAdapter(mForecastAdapter);
+            if(getActivity() != null) {
+                if(forecastArray != null) {
+                    mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast, forecastArray);
+                    mForecastList.setAdapter(mForecastAdapter);
+                } else {
+                    List<String> errorList = new ArrayList<>();
+                    errorList.add(ERROR_BAD_LOCATION);
+                    mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast, errorList);
+                    mForecastList.setAdapter(mForecastAdapter);
+                }
             }
 
             mForecastList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -252,8 +253,6 @@ public class MainFragment extends Fragment {
 
         int numOfMeasurementsLeftToday = (24 - calendar.get(Calendar.HOUR_OF_DAY)) / 3;
 
-        Log.d("left today", numOfMeasurementsLeftToday + "");
-
         List<String> resultStringList = new ArrayList<>();
         String todayHighAndLow;
 
@@ -282,20 +281,14 @@ public class MainFragment extends Fragment {
             JSONObject weatherObject = dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
             todayDescription = weatherObject.getString(OWM_DESCRIPTION);
 
-            Log.d("today count", i + "");
-
             // Temperatures are in a child object called "temp".  Try not to name variables
             // "temp" when working with temperature.  It confuses everybody.
             JSONObject temperatureObject = dayForecast.getJSONObject(OWM_TEMPERATURE);
 
             if(temperatureObject.getDouble(OWM_MAX) > todayMax) {
-                todayMax = temperatureObject.getDouble(OWM_MAX);
-                Log.d("MAX > todayMax", todayMax + "");
-            }
+                todayMax = temperatureObject.getDouble(OWM_MAX);}
             if(temperatureObject.getDouble(OWM_MIN) < todayMin) {
-                todayMin = temperatureObject.getDouble((OWM_MIN));
-                Log.d("MIN < todayMin", todayMin + "");
-            }
+                todayMin = temperatureObject.getDouble((OWM_MIN));}
         }
 
         todayHighAndLow = formatHighLows(todayMax, todayMin);
@@ -378,7 +371,6 @@ public class MainFragment extends Fragment {
             String[] cityAndCountry = mLocation.split(",");
             new GetWeatherTask().execute(cityAndCountry[0].trim());
             if(cityAndCountry.length > 0)
-             Log.d("cityAndCountry", cityAndCountry[0] + " " + cityAndCountry[1]);
             return true;
         }
 
@@ -399,9 +391,6 @@ public class MainFragment extends Fragment {
      * Prepare the weather high/lows for presentation.
      */
     private String formatHighLows(double high, double low) {
-
-        Log.d("formatHighLows", high + " / " + low);
-
         // For presentation, assume the user doesn't care about tenths of a degree.
         long roundedHigh = Math.round(high);
         long roundedLow = Math.round(low);
