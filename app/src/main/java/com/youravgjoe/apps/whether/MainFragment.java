@@ -10,6 +10,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.PagerAdapter;
+import android.text.TextUtils;
 import android.text.format.Time;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 
 public class MainFragment extends Fragment {
@@ -53,7 +55,7 @@ public class MainFragment extends Fragment {
     private static final String CELSIUS = "Celsius";
     private static final String FAHRENHEIT = "Fahrenheit";
     private static final String DEFAULT_LOCATION = "London";
-    private static final String LOCATION_INTRO = "Weather for ";
+    private static final String ERROR_BAD_LOCATION = "Error retrieving data. Please try another city or zip code.";
 
     public MainFragment() {
         // Required empty public constructor
@@ -81,10 +83,13 @@ public class MainFragment extends Fragment {
         } else {
             mLocation = readPref(LOCATION_SETTING).get(0);
         }
+        String[] cityAndCountry = mLocation.split(",");
+        if(cityAndCountry.length > 0)
+          Log.d("cityAndCountry", cityAndCountry[0] + " " + cityAndCountry[1]);
 
         mLocationTextView.setText(String.format(getString(R.string.location_intro), mLocation));
 
-        new GetWeatherTask().execute(mLocation);
+        new GetWeatherTask().execute(cityAndCountry[0].trim());
 
         return rootView;
     }
@@ -117,6 +122,8 @@ public class MainFragment extends Fragment {
             String baseUrl = "http://api.openweathermap.org/data/2.5/forecast/?q=";
 
             String search = params[0];
+
+            search = search.replace(" ", "%20");
 
             String endOfUrl = "&units=imperial&APPID=4f087bf7b1cdc161443d65c7be0feccd";
 
@@ -164,7 +171,7 @@ public class MainFragment extends Fragment {
                 }
                 forecastJsonStr = buffer.toString();
             } catch (IOException e) {
-                Log.e("PlaceholderFragment", "Error ", e);
+                Log.e("MainFragment", "Error ", e);
                 // If the code didn't successfully get the weather data, there's no point in attemping
                 // to parse it.
                 return null;
@@ -176,7 +183,7 @@ public class MainFragment extends Fragment {
                     try {
                         reader.close();
                     } catch (final IOException e) {
-                        Log.e("PlaceholderFragment", "Error closing stream", e);
+                        Log.e("MainFragment", "Error closing stream", e);
                     }
                 }
             }
@@ -196,17 +203,24 @@ public class MainFragment extends Fragment {
 
         @Override
         protected void onPostExecute(final List<String> forecastArray) {
-            if(getActivity() != null) {
+            if(getActivity() != null && forecastArray != null) {
                 mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast, forecastArray);
+                mForecastList.setAdapter(mForecastAdapter);
+            } else {
+                List<String> errorList = new ArrayList<>();
+                errorList.add(ERROR_BAD_LOCATION);
+                mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast, errorList);
                 mForecastList.setAdapter(mForecastAdapter);
             }
 
             mForecastList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                    Intent detailIntent = new Intent(getActivity(), DetailActivity.class);
-                    detailIntent.putExtra("detail", mForecastAdapter.getItem(position));
-                    getActivity().startActivity(detailIntent);
+                    if(!TextUtils.equals(mForecastAdapter.getItem(position), ERROR_BAD_LOCATION)) {
+                        Intent detailIntent = new Intent(getActivity(), DetailActivity.class);
+                        detailIntent.putExtra("detail", mForecastAdapter.getItem(position));
+                        getActivity().startActivity(detailIntent);
+                    }
                 }
             });
         }
@@ -225,7 +239,6 @@ public class MainFragment extends Fragment {
         JSONObject weatherJson = new JSONObject(forecastJson);
         JSONArray weatherArray = weatherJson.getJSONArray(OWM_LIST);
 
-
         Time dayTime = new Time();
         dayTime.setToNow();
 
@@ -236,45 +249,52 @@ public class MainFragment extends Fragment {
         dayTime = new Time();
 
         Calendar calendar = Calendar.getInstance();
+
         int numOfMeasurementsLeftToday = (24 - calendar.get(Calendar.HOUR_OF_DAY)) / 3;
+
+        Log.d("left today", numOfMeasurementsLeftToday + "");
 
         List<String> resultStringList = new ArrayList<>();
         String todayHighAndLow;
 
-        String today;
-        String todayDescription;
+        String today = "error";
+        String todayDescription = "error";
 
         double todayMax = -1000;
         double todayMin = 1000;
 
-        // Get the JSON object representing the day
-        JSONObject dayForecast = weatherArray.getJSONObject(0);
-
-        // The date/time is returned as a long.  We need to convert that
-        // into something human-readable, since most people won't read "1400356800" as
-        // "this saturday".
-        long dateTime;
-        // Cheating to convert this to UTC time, which is what we want anyhow
-        dateTime = dayTime.setJulianDay(julianStartDay / 8); // this 8 is the number of times it measures in a day.
-
-        today = getReadableDateString(dateTime);
-
-        Log.d("today", today + "");
-
-        // description is in a child array called "weather", which is 1 element long.
-        JSONObject weatherObject = dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
-        todayDescription = weatherObject.getString(OWM_DESCRIPTION);
-
         for (int i = 0; i < numOfMeasurementsLeftToday; i++) {
+
+            // Get the JSON object representing the day
+            JSONObject dayForecast = weatherArray.getJSONObject(i);
+
+            // The date/time is returned as a long.  We need to convert that
+            // into something human-readable, since most people won't read "1400356800" as
+            // "this saturday".
+            long dateTime;
+
+            // Cheating to convert this to UTC time, which is what we want anyhow
+            dateTime = dayTime.setJulianDay(julianStartDay);
+
+            today = getReadableDateString(dateTime);
+
+            // description is in a child array called "weather", which is 1 element long.
+            JSONObject weatherObject = dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
+            todayDescription = weatherObject.getString(OWM_DESCRIPTION);
+
+            Log.d("today count", i + "");
+
             // Temperatures are in a child object called "temp".  Try not to name variables
             // "temp" when working with temperature.  It confuses everybody.
             JSONObject temperatureObject = dayForecast.getJSONObject(OWM_TEMPERATURE);
 
             if(temperatureObject.getDouble(OWM_MAX) > todayMax) {
                 todayMax = temperatureObject.getDouble(OWM_MAX);
+                Log.d("MAX > todayMax", todayMax + "");
             }
             if(temperatureObject.getDouble(OWM_MIN) < todayMin) {
                 todayMin = temperatureObject.getDouble((OWM_MIN));
+                Log.d("MIN < todayMin", todayMin + "");
             }
         }
 
@@ -290,6 +310,9 @@ public class MainFragment extends Fragment {
 
         for (int i = numOfMeasurementsLeftToday; i < weatherArray.length(); i++) {
 
+            // Get the JSON object representing the day
+            JSONObject dayForecast;
+
             for(int j = 0; j < 8; j++) {
                 // Get the JSON object representing the day
                 dayForecast = weatherArray.getJSONObject(i);
@@ -297,16 +320,15 @@ public class MainFragment extends Fragment {
                 // The date/time is returned as a long.  We need to convert that
                 // into something human-readable, since most people won't read "1400356800" as
                 // "this saturday".
+                long dateTime;
 
                 // Cheating to convert this to UTC time, which is what we want anyhow
                 dateTime = dayTime.setJulianDay(julianStartDay + i / 8); // this 8 is the number of times it measures in a day.
 
-                ////////////////////////////////////////////////////THIS IS WHAT NEEDS TO BE CHANGED. TIME OF DAY. ^^^^^^
-
                 day = getReadableDateString(dateTime);
 
                 // description is in a child array called "weather", which is 1 element long.
-                weatherObject = dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
+                JSONObject weatherObject = dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
                 description = weatherObject.getString(OWM_DESCRIPTION);
 
                 // Temperatures are in a child object called "temp".  Try not to name variables
@@ -353,7 +375,10 @@ public class MainFragment extends Fragment {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
             Toast.makeText(getActivity(), "Refreshing weather...", Toast.LENGTH_SHORT).show();
-            new GetWeatherTask().execute(mLocation);
+            String[] cityAndCountry = mLocation.split(",");
+            new GetWeatherTask().execute(cityAndCountry[0].trim());
+            if(cityAndCountry.length > 0)
+             Log.d("cityAndCountry", cityAndCountry[0] + " " + cityAndCountry[1]);
             return true;
         }
 
