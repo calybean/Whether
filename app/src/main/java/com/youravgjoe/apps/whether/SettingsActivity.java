@@ -5,16 +5,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -61,8 +57,8 @@ public class SettingsActivity extends AppCompatActivity {
 //        this.getSharedPreferences(UNITS_SETTING, 0).edit().clear().commit();
 
         if (readPref(UNITS_SETTING).size() == 0) {
-            writePref(UNITS_SETTING, FAHRENHEIT);
-            units.setText(FAHRENHEIT);
+            writePref(UNITS_SETTING, CELSIUS);
+            units.setText(CELSIUS);
         } else {
             units.setText(readPref(UNITS_SETTING).get(0));
         }
@@ -121,8 +117,13 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
-
-
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        this.finish();
+        Intent backIntent = new Intent(SettingsActivity.this, MainActivity.class);
+        startActivity(backIntent);
+    }
 
     public class ValidateLocationTask extends AsyncTask<String, Void, String[]> {
 
@@ -135,7 +136,7 @@ public class SettingsActivity extends AppCompatActivity {
 
             search = search.replace(" ", "%20");
 
-            String endOfUrl = "&units=imperial&APPID=4f087bf7b1cdc161443d65c7be0feccd";
+            String endOfUrl = "&units=metric&APPID=4f087bf7b1cdc161443d65c7be0feccd";
 
             String builtUri = baseUrl + search + endOfUrl;
 

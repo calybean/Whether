@@ -9,7 +9,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v4.view.PagerAdapter;
 import android.text.TextUtils;
 import android.text.format.Time;
 import android.util.Log;
@@ -39,7 +38,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Calendar;
-import java.util.TimeZone;
 
 
 public class MainFragment extends Fragment {
@@ -54,7 +52,7 @@ public class MainFragment extends Fragment {
     private static final String UNITS_SETTING = "units";
     private static final String CELSIUS = "Celsius";
     private static final String FAHRENHEIT = "Fahrenheit";
-    private static final String DEFAULT_LOCATION = "London";
+    private static final String DEFAULT_LOCATION = "Los Angeles, US";
     private static final String ERROR_BAD_LOCATION = "Error retrieving data. Please try another city or zip code.";
 
     public MainFragment() {
@@ -80,9 +78,14 @@ public class MainFragment extends Fragment {
 
         if(readPref(LOCATION_SETTING).size() == 0) {
             mLocation = DEFAULT_LOCATION;
+            writePref(LOCATION_SETTING, mLocation);
         } else {
             mLocation = readPref(LOCATION_SETTING).get(0);
         }
+        if(readPref(UNITS_SETTING).size() == 0) {
+            writePref(UNITS_SETTING, CELSIUS);
+        }
+
         String[] cityAndCountry = mLocation.split(",");
         if(cityAndCountry.length > 0)
 
@@ -124,7 +127,7 @@ public class MainFragment extends Fragment {
 
             search = search.replace(" ", "%20");
 
-            String endOfUrl = "&units=imperial&APPID=4f087bf7b1cdc161443d65c7be0feccd";
+            String endOfUrl = "&units=metric&APPID=4f087bf7b1cdc161443d65c7be0feccd";
 
             String builtUri = baseUrl + search + endOfUrl;
 
@@ -228,7 +231,6 @@ public class MainFragment extends Fragment {
     }
 
     public List<String> formatForecastJsonForOutput(String forecastJson) throws JSONException {
-
         // These are the names of the JSON objects that need to be extracted.
         final String OWM_LIST = "list";
         final String OWM_WEATHER = "weather";
@@ -391,17 +393,46 @@ public class MainFragment extends Fragment {
      * Prepare the weather high/lows for presentation.
      */
     private String formatHighLows(double high, double low) {
-        // For presentation, assume the user doesn't care about tenths of a degree.
-        long roundedHigh = Math.round(high);
-        long roundedLow = Math.round(low);
+        if(getActivity() != null) {
+            if(TextUtils.equals(readPref(UNITS_SETTING).get(0), CELSIUS)) {
+                // For presentation, assume the user doesn't care about tenths of a degree.
+                long roundedHigh = Math.round(high);
+                long roundedLow = Math.round(low);
 
-        String highLowStr = roundedHigh + "° / " + roundedLow + "°";
-        return highLowStr;
+                return roundedHigh + "° / " + roundedLow + "°";
+            } else {
+                high = (high * 9 / 5) + 32;
+                low = (low * 9 / 5) + 32;
+
+                // For presentation, assume the user doesn't care about tenths of a degree.
+                long roundedHigh = Math.round(high);
+                long roundedLow = Math.round(low);
+
+                return roundedHigh + "° / " + roundedLow + "°";
+            }
+        }
+        return null;
     }
 
     public List<String> readPref(String prefName) {
-        SharedPreferences sharedPreferences = this.getActivity().getSharedPreferences(prefName, Context.MODE_PRIVATE);
-        HashSet<String> hashSet = (HashSet<String>) sharedPreferences.getStringSet(prefName, new HashSet<String>());
-        return new ArrayList<>(hashSet);
+        if(getActivity() != null) {
+            SharedPreferences sharedPreferences = this.getActivity().getSharedPreferences(prefName, Context.MODE_PRIVATE);
+            HashSet<String> hashSet = (HashSet<String>) sharedPreferences.getStringSet(prefName, new HashSet<String>());
+            return new ArrayList<>(hashSet);
+        }
+        return null;
+    }
+
+    public void writePref(String prefName, String value) {
+        if (getActivity() != null) {
+            List<String> temp = new ArrayList<>();
+            temp.add(value);
+            HashSet<String> hashSet = new HashSet<>(temp);
+            SharedPreferences sharedPreferences = this.getActivity().getSharedPreferences(prefName, Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            sharedPreferences.edit().clear().commit();
+            editor.putStringSet(prefName, hashSet);
+            editor.apply();
+        }
     }
 }
