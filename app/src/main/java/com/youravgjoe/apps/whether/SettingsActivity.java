@@ -1,5 +1,6 @@
 package com.youravgjoe.apps.whether;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -10,9 +11,12 @@ import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -78,10 +82,11 @@ public class SettingsActivity extends AppCompatActivity {
             public void onClick(View view) {
                 final AlertDialog.Builder locationDialog = new AlertDialog.Builder(SettingsActivity.this);
                 locationDialog.setTitle("Set Location");
-                locationDialog.setMessage("Type in a City or a Zip Code:");
+                locationDialog.setMessage("Type in a Zip Code:");
 
                 final EditText locationEditText = new EditText(SettingsActivity.this);
                 locationEditText.setSingleLine();
+                locationEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
 
                 float scale = getResources().getDisplayMetrics().density;
                 int padding = (int) (16 * scale + 0.5f);
@@ -102,6 +107,9 @@ public class SettingsActivity extends AppCompatActivity {
                 });
                 locationDialog.show();
 
+
+//                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+//                imm.hideSoftInputFromWindow(locationEditText.getWindowToken(), 0);
 
 //                if(isMapsInstalled()) {
 //                    Uri mapIntentUri = Uri.parse("geo:0,0?q=" + mLocation);
@@ -216,9 +224,13 @@ public class SettingsActivity extends AppCompatActivity {
                     Toast.makeText(SettingsActivity.this, "Error: Invalid Location", Toast.LENGTH_LONG).show();
                     mLocation = null;
                 } else {
-                    mLocation = locationInfo[0] + ", " + locationInfo[1];
-                    writePref(LOCATION_SETTING, mLocation);
+                    mLocation = mSearch;
                     mLocationTextView.setText(mLocation);
+                    writePref(LOCATION_SETTING, mLocation);
+
+//                    mLocation = locationInfo[0] + ", " + locationInfo[1];
+//                    writePref(LOCATION_SETTING, mLocation);
+//                    mLocationTextView.setText(mLocation);
                 }
             } else {
                 // do nothing?
