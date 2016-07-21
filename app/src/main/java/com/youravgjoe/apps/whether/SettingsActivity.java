@@ -89,7 +89,7 @@ public class SettingsActivity extends AppCompatActivity {
                 locationEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
 
                 float scale = getResources().getDisplayMetrics().density;
-                int padding = (int) (16 * scale + 0.5f);
+                int padding = (int) (16 * scale + 0.5f); // this converts 16dp to pixels
 
                 locationDialog.setView(locationEditText, padding, 0, padding, 0);
 
