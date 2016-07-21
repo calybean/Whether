@@ -3,6 +3,8 @@ package com.youravgjoe.apps.whether;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -49,7 +51,7 @@ public class SettingsActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        LinearLayout locationSetting = (LinearLayout) findViewById(R.id.location_setting);
+        final LinearLayout locationSetting = (LinearLayout) findViewById(R.id.location_setting);
         LinearLayout unitsSetting = (LinearLayout) findViewById(R.id.units_setting);
         mLocationTextView = (TextView) findViewById(R.id.location);
         final TextView units = (TextView) findViewById(R.id.units);
@@ -79,6 +81,7 @@ public class SettingsActivity extends AppCompatActivity {
                 locationDialog.setMessage("Type in a City or a Zip Code:");
 
                 final EditText locationEditText = new EditText(SettingsActivity.this);
+                locationEditText.setSingleLine();
 
                 float scale = getResources().getDisplayMetrics().density;
                 int padding = (int) (16 * scale + 0.5f);
@@ -98,6 +101,14 @@ public class SettingsActivity extends AppCompatActivity {
                     }
                 });
                 locationDialog.show();
+
+
+//                if(isMapsInstalled()) {
+//                    Uri mapIntentUri = Uri.parse("geo:0,0?q=" + mLocation);
+//                    Intent mapIntent = new Intent(Intent.ACTION_VIEW, mapIntentUri);
+//                    mapIntent.setPackage("com.google.android.apps.maps");
+//                    startActivity(mapIntent);
+//                }
             }
         });
 
@@ -215,7 +226,17 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-
+    private boolean isMapsInstalled() {
+        PackageManager pm = getPackageManager();
+        try {
+            pm.getPackageInfo("com.google.android.apps.maps", PackageManager.GET_ACTIVITIES);
+            return pm.getApplicationInfo("com.google.android.apps.maps", 0).enabled;
+        }
+        catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 
     public List<String> readPref(String prefName) {
